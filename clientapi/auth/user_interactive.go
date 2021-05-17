@@ -75,6 +75,9 @@ type Login struct {
 
 // Username returns the user localpart/user_id in this request, if it exists.
 func (r *Login) Username() string {
+	if r.Identifier.Type == "m.id.ldap" {
+		return r.Identifier.User
+	}
 	if r.Identifier.Type == "m.id.user" {
 		return r.Identifier.User
 	}

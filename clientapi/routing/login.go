@@ -65,14 +65,25 @@ func Login(
 			JSON: passwordLogin(),
 		}
 	} else if req.Method == http.MethodPost {
+		r := &auth.PasswordRequest{}
+		if err := httputil.UnmarshalJSONRequest(req, r); err != nil {
+			return *err
+		}
+		if r.Type == "m.login.sso.ldap" || r.Identifier.Type == "m.id.ldap" {
+			typeLdap := auth.LoginTypeLdap{
+				GetAccountByPassword: accountDB.GetAccountByPassword,
+				Config:               cfg,
+			}
+			login, authErr := typeLdap.Login(req.Context(), r)
+			if authErr != nil {
+				return *authErr
+			}
+			return completeAuth(req.Context(), cfg.Matrix.ServerName, userAPI, login, req.RemoteAddr, req.UserAgent())
+		}
+
 		typePassword := auth.LoginTypePassword{
 			GetAccountByPassword: accountDB.GetAccountByPassword,
 			Config:               cfg,
-		}
-		r := typePassword.Request()
-		resErr := httputil.UnmarshalJSONRequest(req, r)
-		if resErr != nil {
-			return *resErr
 		}
 		login, authErr := typePassword.Login(req.Context(), r)
 		if authErr != nil {
